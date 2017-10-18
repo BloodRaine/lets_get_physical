@@ -158,7 +158,7 @@ impl<R: gfx::Resources> App<R> {
                 for k in 0..7 {
                     let mut body = RigidBody::new_dynamic(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.04), 1000., 0.65, 0.47);
                     body.set_margin(0.0001);
-                    body.set_transformation(Isometry3::new(Vector3::new(i as f32, j as f32 + 0.001, k as f32) * 0.041, na::zero()));
+                    body.set_transformation(Isometry3::new(Vector3::new(i as f32, j as f32 + 1., k as f32) * 0.041, na::zero()));
 
                     self.obj_list.push(Object{
                         body: self.physics_world.add_rigid_body(body),
@@ -184,7 +184,7 @@ impl<R: gfx::Resources> App<R> {
         let elapsed = self.last_time.elapsed();
         let t = elapsed.as_secs() as f32 + (elapsed.subsec_nanos() as f32 * 1e-9);
 
-        self.physics_world.step(t.min(0.1) as f32);
+        self.physics_world.step(/*t.min(0.1) as f32*/0.01);
 
         match (self.primary.update(vrm), self.secondary.update(vrm)) {
             (Ok(_), Ok(_)) => (),
