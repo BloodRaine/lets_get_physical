@@ -138,7 +138,7 @@ impl<R: gfx::Resources> App<R> {
         let mjolnir = load::object_directory(factory, "assets/hammer/")?;
 
         let shapes = vec! [
-            (Isometry3::new(Vector3::new(0.,-3.,0.) * 0.08, na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(2.0, 1.5 , 1.5) * 0.08))),
+            (Isometry3::new(Vector3::new(0.,-3.,0.) * 0.08, na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(1.8, 1.4 , 1.4) * 0.08))),
             (Isometry3::new(Vector3::new(0.,1.25,0.) * 0.08, na::zero()) , ShapeHandle::new(Cylinder::new(3.25 * 0.08, 0.5 * 0.08))),
         ];
 
