@@ -23,7 +23,7 @@ const PI2: f32 = 2. * PI;
 const DEG: f32 = PI2 / 360.;
 
 pub struct Object<R: gfx::Resources> {
-    body: RigidBodyHandle<f64>,
+    body: RigidBodyHandle<f32>,
     mesh: PbrMesh<R>,
 }
 
@@ -36,7 +36,7 @@ pub struct App<R: gfx::Resources> {
     last_time: Instant,
     primary: ViveController,
     secondary: ViveController,
-    physics_world: World<f64>,
+    physics_world: World<f32>,
     obj_list: Vec<Object<R>>,
 }
 
@@ -144,19 +144,33 @@ impl<R: gfx::Resources> App<R> {
 
         let compound = Compound::new(shapes);
 
-        /*TODOS
-            set relative positions of shapes
-            set physics in new dynamic
-            set init position
-            set world gravity
-        */
-
         let mut body = RigidBody::new_dynamic(compound, 2330., 0.65, 0.47);
 
         self.obj_list.push(Object{
             body: self.physics_world.add_rigid_body(body), 
             mesh: mjolnir,
         });
+
+        let cube = load_my_simple_object(factory, "assets/cube.obj", [0x80, 0x80, 0xFF, 0xFF])?;
+
+        for i in 0..10 {
+            for j in 0..10 {
+                for k in 0..10 {
+                    
+                    let shapes = vec! [
+                        (Isometry3::new(Vector3::new(i as f32,j as f32,k as f32) * 0.08, na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.08)))
+                    ];
+
+                    let compound = Compound::new(shapes);
+                    let mut body = RigidBody::new_dynamic(compound, 1000., 0.65, 0.47);
+
+                    self.obj_list.push(Object{
+                        body: self.physics_world.add_rigid_body(body),
+                        mesh: cube.clone(),
+                    });
+                }
+            }
+        }
 
         let floor = Plane::new(Vector3::new(0.,1.,0.));
         let mut floor = RigidBody::new_static(floor, 0.1, 0.6);
@@ -174,7 +188,7 @@ impl<R: gfx::Resources> App<R> {
         let elapsed = self.last_time.elapsed();
         let t = elapsed.as_secs() as f32 + (elapsed.subsec_nanos() as f32 * 1e-9);
 
-        self.physics_world.step(t.min(0.1) as f64);
+        self.physics_world.step(t.min(0.1) as f32);
 
         match (self.primary.update(vrm), self.secondary.update(vrm)) {
             (Ok(_), Ok(_)) => (),
@@ -223,8 +237,7 @@ impl<R: gfx::Resources> App<R> {
 
         for object in &self.obj_list {
             let body = object.body.borrow();
-            let pos: Isometry3<f32> = na::cast(body.position())
-            self.pbr.draw(ctx, na::convert(na::cast(vrm.stage) * ), &object.mesh);
+            self.pbr.draw(ctx, na::convert(vrm.stage * body.position()), &object.mesh);
         }
     
         // Draw controllers

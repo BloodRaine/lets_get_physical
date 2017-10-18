@@ -144,19 +144,33 @@ impl<R: gfx::Resources> App<R> {
 
         let compound = Compound::new(shapes);
 
-        /*TODOS
-            set relative positions of shapes
-            set physics in new dynamic
-            set init position
-            set world gravity
-        */
-
         let mut body = RigidBody::new_dynamic(compound, 2330., 0.65, 0.47);
 
         self.obj_list.push(Object{
             body: self.physics_world.add_rigid_body(body), 
             mesh: mjolnir,
         });
+
+        let cube = load_my_simple_object(factory, "assets/cube.obj", [0x80, 0x80, 0xFF, 0xFF])?;
+
+        for i in 0..10 {
+            for j in 0..10 {
+                for k in 0..10 {
+                    
+                    let shapes = vec! [
+                        (Isometry3::new(Vector3::new(i as f32, j as f32 + 0.001, k as f32) * 0.081, na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.08)))
+                    ];
+
+                    let compound = Compound::new(shapes);
+                    let mut body = RigidBody::new_dynamic(compound, 1000., 0.65, 0.47);
+
+                    self.obj_list.push(Object{
+                        body: self.physics_world.add_rigid_body(body),
+                        mesh: cube.clone(),
+                    });
+                }
+            }
+        }
 
         let floor = Plane::new(Vector3::new(0.,1.,0.));
         let mut floor = RigidBody::new_static(floor, 0.1, 0.6);
