@@ -153,9 +153,9 @@ impl<R: gfx::Resources> App<R> {
 
         let cube = load_my_simple_object(factory, "assets/cube.obj", [0x80, 0x80, 0xFF, 0xFF])?;
 
-        for i in 0..10 {
-            for j in 0..10 {
-                for k in 0..10 {
+        for i in 0..7 {
+            for j in 0..7 {
+                for k in 0..7 {
                     let mut body = RigidBody::new_dynamic(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.04), 1000., 0.65, 0.47);
                     body.set_margin(0.00001);
                     body.set_transformation(Isometry3::new(Vector3::new(i as f32, j as f32 + 0.001, k as f32) * 0.041, na::zero()));
