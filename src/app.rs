@@ -156,13 +156,10 @@ impl<R: gfx::Resources> App<R> {
         for i in 0..10 {
             for j in 0..10 {
                 for k in 0..10 {
-                    
-                    let shapes = vec! [
-                        (Isometry3::new(Vector3::new(i as f32, j as f32 + 0.001, k as f32) * 0.081, na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.08)))
-                    ];
 
-                    let compound = Compound::new(shapes);
-                    let mut body = RigidBody::new_dynamic(compound, 1000., 0.65, 0.47);
+                    let mut body = RigidBody::new_dynamic(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.04), 1000., 0.65, 0.47);
+
+                    body.set_transformation(Isometry3::new(Vector3::new(i as f32, j as f32 + 0.001, k as f32) * 0.081, na::zero()));
 
                     self.obj_list.push(Object{
                         body: self.physics_world.add_rigid_body(body),
