@@ -23,7 +23,7 @@ const PI2: f32 = 2. * PI;
 const DEG: f32 = PI2 / 360.;
 
 pub struct Object<R: gfx::Resources> {
-    body: RigidBodyHandle<f64>,
+    body: RigidBodyHandle<f32>,
     mesh: PbrMesh<R>,
 }
 
@@ -36,7 +36,7 @@ pub struct App<R: gfx::Resources> {
     last_time: Instant,
     primary: ViveController,
     secondary: ViveController,
-    physics_world: World<f64>,
+    physics_world: World<f32>,
     obj_list: Vec<Object<R>>,
 }
 
@@ -138,8 +138,8 @@ impl<R: gfx::Resources> App<R> {
         let mjolnir = load::object_directory(factory, "assets/hammer/")?;
 
         let shapes = vec! [
-            (Isometry3::new(Vector3::new(0.,-3.,0.), na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(2.0, 1.5 , 1.5)))),
-            (Isometry3::new(Vector3::new(0.,1.25,0.), na::zero()) , ShapeHandle::new(Cylinder::new(3.25, 0.5))),
+            (Isometry3::new(Vector3::new(0.,-3.,0.) * 0.08, na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(2.0, 1.5 , 1.5) * 0.08))),
+            (Isometry3::new(Vector3::new(0.,1.25,0.) * 0.08, na::zero()) , ShapeHandle::new(Cylinder::new(3.25 * 0.08, 0.5 * 0.08))),
         ];
 
         let compound = Compound::new(shapes);
@@ -174,7 +174,7 @@ impl<R: gfx::Resources> App<R> {
         let elapsed = self.last_time.elapsed();
         let t = elapsed.as_secs() as f32 + (elapsed.subsec_nanos() as f32 * 1e-9);
 
-        self.physics_world.step(t.min(0.1) as f64);
+        self.physics_world.step(t.min(0.1) as f32);
 
         match (self.primary.update(vrm), self.secondary.update(vrm)) {
             (Ok(_), Ok(_)) => (),
@@ -223,7 +223,7 @@ impl<R: gfx::Resources> App<R> {
 
         for object in &self.obj_list {
             let body = object.body.borrow();
-            self.pbr.draw(ctx, na::convert(*body.position()), &object.mesh);
+            self.pbr.draw(ctx, na::convert(vrm.stage * body.position()), &object.mesh);
         }
     
         // Draw controllers
