@@ -238,9 +238,9 @@ impl<R: gfx::Resources> App<R> {
 
         // Draw Hammer
 
-        if self.primary.trigger > 0.8 &&  {
-            // TODO
-        }
+        // if self.primary.trigger > 0.8 &&  {
+        //     // TODO
+        // }
 
         for object in &self.obj_list {
             let body = object.body.borrow();
