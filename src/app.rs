@@ -158,6 +158,11 @@ impl<R: gfx::Resources> App<R> {
             mesh: mjolnir,
         });
 
+        let floor = Plane::new(Vector3::new(0.,1.,0.));
+        let mut floor = RigidBody::new_static(floor, 0.1, 0.6);
+        floor.set_margin(0.00001);
+        self.physics_world.add_rigid_body(floor);
+
         Ok(())
     }
 
