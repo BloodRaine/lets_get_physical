@@ -33,7 +33,7 @@ pub struct App<R: gfx::Resources> {
     grid: Mesh<R, VertC, ()>,
     controller_grid: Mesh<R, VertC, ()>,
     controller: PbrMesh<R>,
-    start_time: Instant,
+    last_time: Instant,
     primary: ViveController,
     secondary: ViveController,
     physics_world: World<f64>,
@@ -118,7 +118,7 @@ impl<R: gfx::Resources> App<R> {
             controller_grid: grid_lines(2, 0.2).upload(factory),
             controller: load_my_simple_object(factory, "assets/controller.obj", [0x80, 0x80, 0xFF, 0xFF])?,
             
-            start_time: Instant::now(),
+            last_time: Instant::now(),
             primary: ViveController {
                 is: primary(),
                 pad: Point2::new(0., 1.),
@@ -134,6 +134,7 @@ impl<R: gfx::Resources> App<R> {
     }
 
     pub fn setup_world<F: Factory<R>>(&mut self, factory: &mut F) -> Result<(),Error> {
+        self.physics_world.set_gravity(Vector3::new(0.,-9.81,0.));
         let mjolnir = load::object_directory(factory, "assets/hammer/")?;
 
         let shapes = vec! [
@@ -157,7 +158,6 @@ impl<R: gfx::Resources> App<R> {
             mesh: mjolnir,
         });
 
-
         Ok(())
     }
 
@@ -166,8 +166,10 @@ impl<R: gfx::Resources> App<R> {
         ctx: &mut DrawParams<R, C>,
         vrm: &VrMoment,
     ) {
-        let elapsed = self.start_time.elapsed();
+        let elapsed = self.last_time.elapsed();
         let t = elapsed.as_secs() as f32 + (elapsed.subsec_nanos() as f32 * 1e-9);
+
+        self.physics_world.step(t.min(0.1) as f64);
 
         match (self.primary.update(vrm), self.secondary.update(vrm)) {
             (Ok(_), Ok(_)) => (),
