@@ -1,8 +1,13 @@
 use std::path::Path;
+use std::any::Any;
 use std::time::Instant;
 use gfx::{self, Factory};
 use gfx::traits::FactoryExt;
-use nalgebra::{self as na, Rotation3, SimilarityMatrix3, Translation3, Point3, Point2, Vector3};
+use nalgebra::{self as na, Rotation3, SimilarityMatrix3, Translation3, Point3, Point2, Vector3, Isometry3};
+
+use nphysics3d::world::World;
+use nphysics3d::object::{RigidBody, RigidBodyHandle};
+use ncollide::shape::*;
 
 use lib::{Texture, Light, PbrMesh, Error};
 use lib::mesh::*;
@@ -17,16 +22,22 @@ const PI: f32 = ::std::f32::consts::PI;
 const PI2: f32 = 2. * PI;
 const DEG: f32 = PI2 / 360.;
 
+pub struct Object<R: gfx::Resources> {
+    body: RigidBodyHandle<f64>,
+    mesh: PbrMesh<R>,
+}
+
 pub struct App<R: gfx::Resources> {
     solid: Painter<R, SolidStyle<R>>,
     pbr: Painter<R, PbrStyle<R>>,
     grid: Mesh<R, VertC, ()>,
     controller_grid: Mesh<R, VertC, ()>,
     controller: PbrMesh<R>,
-    teapot: PbrMesh<R>,
     start_time: Instant,
     primary: ViveController,
     secondary: ViveController,
+    physics_world: World<f64>,
+    obj_list: Vec<Object<R>>,
 }
 
 fn grid_lines(count: u32, size: f32) -> MeshSource<VertC, ()> {
@@ -106,7 +117,7 @@ impl<R: gfx::Resources> App<R> {
             grid: grid_lines(8, 8.).upload(factory),
             controller_grid: grid_lines(2, 0.2).upload(factory),
             controller: load_my_simple_object(factory, "assets/controller.obj", [0x80, 0x80, 0xFF, 0xFF])?,
-            teapot: load::object_directory(factory, "assets/teapot_wood/")?,
+            
             start_time: Instant::now(),
             primary: ViveController {
                 is: primary(),
@@ -117,7 +128,37 @@ impl<R: gfx::Resources> App<R> {
                 is: secondary(),
                 .. Default::default()
             },
+            physics_world: World::new(),
+            obj_list: Vec::new(),
         })
+    }
+
+    pub fn setup_world<F: Factory<R>>(&mut self, factory: &mut F) -> Result<(),Error> {
+        let mjolnir = load::object_directory(factory, "assets/hammer/")?;
+
+        let shapes = vec! [
+            (Isometry3::new(Vector3::new(0.,-3.,0.), na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(2.0, 1.5 , 1.5)))),
+            (Isometry3::new(Vector3::new(0.,1.25,0.), na::zero()) , ShapeHandle::new(Cylinder::new(3.25, 0.5))),
+        ];
+
+        let compound = Compound::new(shapes);
+
+        /*TODOS
+            set relative positions of shapes
+            set physics in new dynamic
+            set init position
+            set world gravity
+        */
+
+        let mut body = RigidBody::new_dynamic(compound, 2330., 0.65, 0.47);
+
+        self.obj_list.push(Object{
+            body: self.physics_world.add_rigid_body(body), 
+            mesh: mjolnir,
+        });
+
+
+        Ok(())
     }
 
     pub fn draw<C: gfx::CommandBuffer<R>>(
@@ -154,15 +195,15 @@ impl<R: gfx::Resources> App<R> {
             s.lights(&[
                 Light {
                     pos: vrm.stage * Point3::new(4., 0., 0.),
-                    color: [0.8, 0.2, 0.2, 100.],
+                    color: [0.8, 0.2, 0.2, 200.],
                 },
                 Light {
                     pos: vrm.stage * Point3::new(0., 4., 0.),
-                    color: [0.2, 0.8, 0.2, 100.],
+                    color: [0.2, 0.8, 0.2, 200.],
                 },
                 Light {
                     pos: vrm.stage * Point3::new(0., 0., 4.),
-                    color: [0.2, 0.2, 0.8, 100.],
+                    color: [0.2, 0.2, 0.8, 200.],
                 },
                 cont_light,
             ]);
@@ -171,27 +212,13 @@ impl<R: gfx::Resources> App<R> {
         // Draw grid
         self.solid.draw(ctx, vrm.stage, &self.grid);
 
-        // Draw teapot
-        let tearot =
-            Rotation3::from_axis_angle(&Vector3::x_axis(), (t * 0.7).sin() * 10. * DEG)
-            * Rotation3::from_axis_angle(&Vector3::z_axis(), (t * 0.8).cos() * 15. * DEG)
-            * Rotation3::from_axis_angle(&Vector3::y_axis(), t * 60. * DEG);
+        // Draw Hammer
 
-        let teamat = if self.primary.connected {
-            na::convert(self.primary.pose * SimilarityMatrix3::from_parts(
-                Translation3::new(0., 0., -0.25),
-                tearot,
-                0.15 * self.primary.pad_theta().abs() as f32 / PI,		
-            ))
-        } else {
-            vrm.stage * SimilarityMatrix3::from_parts(
-                Translation3::new(1., 0., 1.),
-                tearot,
-                1.,
-            )
-        };
-        self.pbr.draw(ctx, teamat, &self.teapot);
-
+        for object in &self.obj_list {
+            let body = object.body.borrow();
+            self.pbr.draw(ctx, na::convert(*body.position()), &object.mesh);
+        }
+    
         // Draw controllers
         for cont in vrm.controllers() {
             self.solid.draw(ctx, na::convert(cont.pose), &self.controller_grid);

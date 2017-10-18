@@ -9,6 +9,8 @@ extern crate nalgebra;
 extern crate glutin;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
+extern crate nphysics3d;
+extern crate ncollide;
 
 use simplelog::{Config, TermLogger, LogLevelFilter};
 use clap::{Arg, App};
@@ -94,6 +96,8 @@ fn main() {
             return
         },
     };
+
+    application.setup_world(&mut factory).unwrap();
 
     // setup context
     let mut ctx = draw::DrawParams {
