@@ -158,7 +158,7 @@ impl<R: gfx::Resources> App<R> {
                 for k in 0..7 {
                     let mut body = RigidBody::new_dynamic(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.04), 1000., 0.65, 0.47);
                     body.set_margin(0.0001);
-                    body.set_transformation(Isometry3::new(Vector3::new(i as f32, j as f32 + 1., k as f32) * 0.041, na::zero()));
+                    body.set_transformation(Isometry3::new(Vector3::new(i as f32 + 0.2, j as f32 + 1., k as f32 + 0.2) , na::zero()));
 
                     self.obj_list.push(Object{
                         body: self.physics_world.add_rigid_body(body),
