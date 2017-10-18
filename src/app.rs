@@ -146,7 +146,7 @@ impl<R: gfx::Resources> App<R> {
 
         let mut body = RigidBody::new_dynamic(compound, 2330., 0.35, 0.47);
 
-        body.set_transformation(Isometry3::new(Vector3::new(0.,0.2,0.) , na::zero()));
+        body.set_transformation(Isometry3::new(Vector3::new(0.,0.5,0.) , na::zero()));
 
         self.obj_list.push(Object{
             body: self.physics_world.add_rigid_body(body), 
