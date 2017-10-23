@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::any::Any;
 use std::time::Instant;
 use gfx::{self, Factory};
 use gfx::traits::FactoryExt;
@@ -9,6 +8,7 @@ use nphysics3d::world::World;
 use nphysics3d::object::{RigidBody, RigidBodyHandle};
 use ncollide::shape::*;
 use ncollide::world::CollisionWorld;
+use ncollide::bounding_volume::{self, BoundingVolume};
 
 use lib::{Texture, Light, PbrMesh, Error};
 use lib::mesh::*;
@@ -39,6 +39,7 @@ pub struct App<R: gfx::Resources> {
     secondary: ViveController,
     physics_world: World<f32>,
     obj_list: Vec<Object<R>>,
+    interactables: Vec<Object<R>>,
 }
 
 fn grid_lines(count: u32, size: f32) -> MeshSource<VertC, ()> {
@@ -131,12 +132,12 @@ impl<R: gfx::Resources> App<R> {
             },
             physics_world: World::new(),
             obj_list: Vec::new(),
+            interactables: Vec::new(),
         })
     }
 
-    pub fn setup_world<F: Factory<R>>(&mut self, factory: &mut F) -> Result<(),Error> {
-        self.physics_world.set_gravity(Vector3::new(0.,-9.81,0.));
-        let mjolnir = load::object_directory(factory, "assets/hammer/")?;
+    fn setup_mjolnir<F: Factory<R>>(&mut self, factory: &mut F) -> (RigidBody<f32>, PbrMesh<R>) {
+        let mjolnir = load::object_directory(factory, "assets/hammer/").unwrap();
 
         let shapes = vec! [
             (Isometry3::new(Vector3::new(0.,-3.,0.) * 0.08, na::zero()) , ShapeHandle::new(Cuboid::new(Vector3::new(2.0, 1.5 , 1.5) * 0.08))),
@@ -149,10 +150,24 @@ impl<R: gfx::Resources> App<R> {
 
         body.set_transformation(Isometry3::new(Vector3::new(0.,0.5,0.) , na::zero()));
 
-        self.obj_list.push(Object{
-            body: self.physics_world.add_rigid_body(body), 
-            mesh: mjolnir,
-        });
+        //(body, mjolnir)
+        (body, mjolnir)
+
+        //nphysics3d::object::RigidBody
+
+        //Object{body: self.physics_world.add_rigid_body(body), mesh: mjolnir}
+    }
+
+    fn setup_interactables<F: Factory<R>>(&mut self, factory: &mut F) {
+        let (mjolnir_body, mjolnir_mesh) = self.setup_mjolnir(&mut *factory);
+        let handle = self.physics_world.add_rigid_body(mjolnir_body);
+        self.interactables.push(Object{body: handle, mesh: mjolnir_mesh});
+    }
+
+    pub fn setup_world<F: Factory<R>>(&mut self, factory: &mut F) -> Result<(),Error> {
+        self.physics_world.set_gravity(Vector3::new(0.,-9.81,0.));
+        
+        self.setup_interactables(&mut *factory);
 
         let cube = load_my_simple_object(factory, "assets/cube.obj", [0x80, 0x80, 0xFF, 0xFF])?;
 
@@ -161,7 +176,7 @@ impl<R: gfx::Resources> App<R> {
                 for k in 0..7 {
                     let mut body = RigidBody::new_dynamic(Cuboid::new(Vector3::new(1.0, 1.0 , 1.0) * 0.04), 1000., 0.65, 0.47);
                     body.set_margin(0.0001);
-                    body.set_transformation(Isometry3::new(Vector3::new(i as f32 * 0.041, j as f32 + 1., k as f32 * 0.041) , na::zero()));
+                    body.set_transformation(Isometry3::new(Vector3::new(i as f32 * 0.041, j as f32 + 0.2, k as f32 * 0.041) , na::zero()));
 
                     self.obj_list.push(Object{
                         body: self.physics_world.add_rigid_body(body),
@@ -190,8 +205,9 @@ impl<R: gfx::Resources> App<R> {
         let sphere = Ball::new(1.);
         let mut sphere = RigidBody::new_static(sphere, 0.0, 0.);
         sphere.set_transformation(self.primary.pose);
+        let bounding_sphere_sphere = bounding_volume::bounding_sphere(&sphere, &self.primary.pose);
 
-        self.physics_world.step(/*t.min(0.1) as f32*/0.01);
+        self.physics_world.step(0.01);
 
         match (self.primary.update(vrm), self.secondary.update(vrm)) {
             (Ok(_), Ok(_)) => (),
@@ -236,11 +252,14 @@ impl<R: gfx::Resources> App<R> {
         // Draw grid
         self.solid.draw(ctx, vrm.stage, &self.grid);
 
-        // Draw Hammer
-
-        // if self.primary.trigger > 0.8 &&  {
-        //     // TODO
-        // }
+        // Draw Interactable Objects
+        for object in &self.interactables {
+            //if self.primary.trigger > 0.8 && bounding_sphere_sphere.intersects(&object.body.bounding_volume()) {
+                // TODO
+            //}
+            let body = object.body.borrow();
+            self.pbr.draw(ctx, na::convert(vrm.stage * body.position()), &object.mesh);
+        }
 
         for object in &self.obj_list {
             let body = object.body.borrow();
